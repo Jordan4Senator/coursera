@@ -18,14 +18,15 @@ the related materials into appropriately named files and directories.
 Why is this helpful?  A utility like [`wget`][2] can work, but has the
 following limitations:
 
-1. Video names have a number in them, but this does not correspond to the
-   actual order.  Manually renaming them is a pain.
+1. Video names have numbers in them, but this does not correspond to the
+   actual order.  Manually renaming them is a pain that is best left for
+   computers.
 2. Using names from the syllabus page provides more informative names.
-3. Using a wget in a for loop picks up extra videos which are not
+3. Using wget in a for loop picks up extra videos which are not
    posted/linked, and these are sometimes duplicates.
 
-*DownloadThemAll* is another possibility, but this script provides more
-features such as appropriately named files.
+Browser extensions like *DownloadThemAll* is another possibility, but
+`coursera-dl` provides more features such as appropriately named files.
 
 This work was originally inspired in part by [youtube-dl][3] by which
 I've downloaded many other good videos such as those from Khan Academy.
@@ -65,7 +66,7 @@ automatically the execution of the program with Python versions 2.6, 2.7,
 Pypy, 3.2, 3.3, and 3.4).
 
 On any operating system, ensure that the Python executable location is added
-to your PATH environment variable and, once you have the dependencies
+to your `PATH` environment variable and, once you have the dependencies
 installed (see next section), for a *basic* usage, you will need to invoke
 the script from the main directory of the project and prepend it with the
 word `python`.  You can also use more advanced features of the program by
@@ -81,16 +82,53 @@ We strongly recommend that you consider installing Python packages with
 using `pip`, you can directly install all the dependencies from the
 requirements file using `pip install -r requirements.txt`.
 
-### Installing dependencies on your own
+#### Recommended installation method for Unix systems
+
+We strongly recommend that you install `coursera-dl` and all its
+dependencies in a way that does *not* interfere with the rest of your Python
+installation. This is accomplished by the creation of a *virtual
+environment*, or "virtualenv".
+
+For the initial setup, in a Unix-like operating system, please use the
+following steps (create/adapt first the directory
+`/directory/where/I/want/my/courses`):
+
+    cd /directory/where/I/want/my/courses
+    virtualenv my-coursera
+    cd my-coursera
+    source bin/activate
+    git clone https://github.com/coursera-dl/coursera
+    cd coursera
+    pip install -r requirements.txt
+    ./coursera-dl ...
+
+To further download new videos from your classes, simply perform:
+
+    cd /directory/where/I/want/my/courses/my-coursera
+    source bin/activate
+    cd coursera
+    ./coursera-dl ...
+
+We are working on streamlining this whole process so that it is as simple as
+possible, but to support older versions of Python and to cope with Coursera
+disabling SSLv3, we have to take a few extra steps.  In any case, it is
+*highly* recommended that you always install the latest version of the
+Python interpreter that you can.
+
+
+#### Installing dependencies on your own
 
 **Warning:** This method is not recommended unless you know what you are
-doing. Before filing bug reports, please check that the versions of your
-modules are those recommended in the `requirements.txt` file.
+doing. Once again, before filing bug reports, if you installed the
+dependencies own your own, please check that the versions of your modules
+are at least those recommended in the `requirements.txt` file.  The
+`requirements.txt` file is the official resource that we use as reference
+and support.
 
-You may choose to install the dependencies yourself, but our users had
-issues that not all resources (videos etc.) were downloaded with versions
-of the dependencies different than those listed in the `requirements.txt`
-file.
+Yet once again, you may choose to install the dependencies yourself, but our
+users had issues that not all resources (videos etc.) were downloaded with
+versions of the dependencies different than those listed in the
+`requirements.txt` file.
 
 In any case, you may want to install:
 
@@ -138,10 +176,11 @@ a class. See https://www.coursera.org/courses for the list of classes.
 ### Running the script
 
 Run the script to download the materials by providing your Coursera account
-credentials (e.g. email address and password or a `~/.netrc` file), the class names,
-as well as any additional parameters:
+credentials (e.g. email address and password or a `~/.netrc` file), the
+class names, as well as any additional parameters:
 
     General:                     coursera-dl -u <user> -p <pass> modelthinking-004
+    On-Demand course:            coursera-dl -u <user> -p <pass> --on-demand calculus1
     Multiple classes:            coursera-dl -u <user> -p <pass> saas historyofrock1-001 algo-2012-002
     Filter by section name:      coursera-dl -u <user> -p <pass> -sf "Chapter_Four" crypto-004
     Filter by lecture name:      coursera-dl -u <user> -p <pass> -lf "3.1_" ml-2012-002
@@ -150,13 +189,21 @@ as well as any additional parameters:
     Get the preview classes:     coursera-dl -n -b ni-001
     Specify download path:       coursera-dl -n --path=C:\Coursera\Classes\ comnetworks-002
     Display help:                coursera-dl --help
+
+    Note: Some of the options like `-sf` and `-f` may not work with on-demand course.
+    Downloading on-demand courses are mutually exclusive with regular courses.
     
     Maintain a list of classes in a dir:
       Initialize:              mkdir -p CURRENT/{class1,class2,..classN}
       Update:                  coursera-dl -n --path CURRENT `\ls CURRENT`
     
-    Note: If your ls command is aliased to display a colorized output, you may experience problems. 
-    Be sure to escape the ls command (use \ls) to assure that no special characters get sent to the script.
+**Note:** If your `ls` command is aliased to display a colorized output, you
+may experience problems.  Be sure to escape the `ls` command (use `\ls`) to
+assure that no special characters get sent to the script.
+
+Note that we *do* support the new On Demand classes. You have to use the
+option `--on-demand` for that purpose. You also have to download those
+classes *separately* for regular, time-based classes.
 
 On \*nix platforms, the use of a `~/.netrc` file is a good alternative to
 specifying both your username (i.e., your email address) and password every
@@ -187,6 +234,9 @@ one of the following actions solve your problem:
 * Make sure the class name you are using corresponds to the resource name
   used in the URL for that class:
     `https://class.coursera.org/<CLASS_NAME>/class/index`
+
+* To download an On Demand course, use the `--on-demand` option of the
+  program.
 
 * Have you tried to clean the cached cookies/credentials with the
   `--clear-cache` option?
@@ -259,8 +309,9 @@ enough information so that you can help us help you:
 * What is the precise command line that you are using (feel free to hide
   your username and password with asterisks, but leave all other
   information untouched).
-* What are the precise messages that you get? Please, copy and paste them.
-  Don't reword the messages.
+* What are the precise messages that you get? Please, use the `--debug`
+  option before posting the messages as a bug report. Please, copy and paste
+  them.  Don't reword/paraphrase the messages.
 
 ## Feedback
 
@@ -295,8 +346,10 @@ I enjoy getting feedback. Here are a few of the comments I've received:
 
 ## Contact
 
-Post bugs and issues on [github][11]. Send other comments to John Lehmann:
-first last at geemail dotcom or [@jplehmann][12]
+Post bugs and issues on [github][11]. Send other comments to Rogério Brito
+(the current maintainer): first last at ime dot usp dot br (twitter:
+[@rtdbrito][21]) or to John Lehman (the original author): first last at
+geemail dotcom (twitter: [@jplehmann][12]).
 
 [1]: https://www.coursera.org
 [2]: http://sourceforge.net/projects/gnuwin32/files/wget/1.11.4-1/wget-1.11.4-1-setup.exe
@@ -318,6 +371,6 @@ first last at geemail dotcom or [@jplehmann][12]
 [18]: http://python-distribute.org/pip_distribute.png
 [19]: https://pypi.python.org/pypi/six/
 [20]: https://www.coursera.org/about/terms
+[21]: https://twitter.com/rtdbrito
 
 [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/coursera-dl/coursera/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-

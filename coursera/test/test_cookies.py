@@ -6,7 +6,9 @@ Test syllabus parsing.
 """
 
 import os.path
-import unittest
+import pytest
+import requests
+from six.moves import http_cookiejar as cookielib
 
 from coursera import cookies
 
@@ -41,67 +43,60 @@ class MockSession:
         return MockResponse()
 
 
-class CookiesFileTestCase(unittest.TestCase):
+def test_get_cookiejar_from_firefox_cookies():
+    cj = cookies.get_cookie_jar(FIREFOX_COOKIES)
+    assert isinstance(cj, cookielib.MozillaCookieJar)
 
-    def test_get_cookiejar_from_firefox_cookies(self):
-        from six.moves import http_cookiejar as cookielib
-        cj = cookies.get_cookie_jar(FIREFOX_COOKIES)
-        self.assertTrue(isinstance(cj, cookielib.MozillaCookieJar))
+def test_get_cookiejar_from_chrome_cookies():
+    cj = cookies.get_cookie_jar(CHROME_COOKIES)
+    assert isinstance(cj, cookielib.MozillaCookieJar)
 
-    def test_get_cookiejar_from_chrome_cookies(self):
-        from six.moves import http_cookiejar as cookielib
-        cj = cookies.get_cookie_jar(CHROME_COOKIES)
-        self.assertTrue(isinstance(cj, cookielib.MozillaCookieJar))
+def test_find_cookies_for_class():
+    cj = cookies.find_cookies_for_class(FIREFOX_COOKIES, 'class-001')
+    assert isinstance(cj, requests.cookies.RequestsCookieJar)
 
-    def test_find_cookies_for_class(self):
-        import requests
-        cj = cookies.find_cookies_for_class(FIREFOX_COOKIES, 'class-001')
-        self.assertTrue(isinstance(cj, requests.cookies.RequestsCookieJar))
+    assert len(cj) == 6
 
-        self.assertEquals(len(cj), 6)
+    domains = cj.list_domains()
+    assert len(domains) == 2
+    assert '.coursera.org' in domains
+    assert 'class.coursera.org' in domains
 
-        domains = cj.list_domains()
-        self.assertEquals(len(domains), 2)
-        self.assertTrue('.coursera.org' in domains)
-        self.assertTrue('class.coursera.org' in domains)
+    paths = cj.list_paths()
+    assert len(paths) == 2
+    assert '/' in paths
+    assert '/class-001' in paths
 
-        paths = cj.list_paths()
-        self.assertEquals(len(paths), 2)
-        self.assertTrue('/' in paths)
-        self.assertTrue('/class-001' in paths)
+def test_did_not_find_cookies_for_class():
+    cj = cookies.find_cookies_for_class(
+        FIREFOX_COOKIES_WITHOUT_COURSERA, 'class-001')
+    assert isinstance(cj, requests.cookies.RequestsCookieJar)
 
-    def test_did_not_find_cookies_for_class(self):
-        import requests
-        cj = cookies.find_cookies_for_class(
-            FIREFOX_COOKIES_WITHOUT_COURSERA, 'class-001')
-        self.assertTrue(isinstance(cj, requests.cookies.RequestsCookieJar))
+    assert len(cj) == 0
 
-        self.assertEquals(len(cj), 0)
+def test_did_not_find_expired_cookies_for_class():
+    cj = cookies.find_cookies_for_class(
+        FIREFOX_COOKIES_EXPIRED, 'class-001')
+    assert isinstance(cj, requests.cookies.RequestsCookieJar)
 
-    def test_did_not_find_expired_cookies_for_class(self):
-        import requests
-        cj = cookies.find_cookies_for_class(
-            FIREFOX_COOKIES_EXPIRED, 'class-001')
-        self.assertTrue(isinstance(cj, requests.cookies.RequestsCookieJar))
+    assert len(cj) == 2
 
-        self.assertEquals(len(cj), 2)
+def test_we_have_enough_cookies():
+    cj = cookies.find_cookies_for_class(FIREFOX_COOKIES, 'class-001')
 
-    def test_we_have_enough_cookies(self):
-        cj = cookies.find_cookies_for_class(FIREFOX_COOKIES, 'class-001')
+    enough = cookies.do_we_have_enough_cookies(cj, 'class-001')
+    assert enough
 
-        enough = cookies.do_we_have_enough_cookies(cj, 'class-001')
-        self.assertTrue(enough)
+def test_we_dont_have_enough_cookies():
+    cj = cookies.find_cookies_for_class(
+        FIREFOX_COOKIES_WITHOUT_COURSERA, 'class-001')
 
-    def test_we_dont_have_enough_cookies(self):
-        cj = cookies.find_cookies_for_class(
-            FIREFOX_COOKIES_WITHOUT_COURSERA, 'class-001')
+    enough = cookies.do_we_have_enough_cookies(cj, 'class-001')
+    assert not enough
 
-        enough = cookies.do_we_have_enough_cookies(cj, 'class-001')
-        self.assertFalse(enough)
+def test_make_cookie_values():
+    cj = cookies.find_cookies_for_class(FIREFOX_COOKIES, 'class-001')
 
-    def test_make_cookie_values(self):
-        cj = cookies.find_cookies_for_class(FIREFOX_COOKIES, 'class-001')
-
-        values = 'csrf_token=csrfclass001; session=sessionclass1'
-        cookie_values = cookies.make_cookie_values(cj, 'class-001')
-        self.assertEquals(cookie_values, values)
+    values = 'csrf_token=csrfclass001; session=sessionclass1'
+    cookie_values = cookies.make_cookie_values(cj, 'class-001')
+    assert cookie_values == values
