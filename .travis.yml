@@ -7,19 +7,12 @@ python:
   - "pypy"
 matrix:
   allow_failures:
-    - python:
-       - "2.6"
-    - python:
-       - "pypy"
-    - python:
-       - "3.2"
+    - python: "pypy"
 # command to install dependencies
 install:
   - pip install -r requirements.txt
+  - pip install -r requirements-dev.txt
   - pip install coveralls
-  - pip install pytest
-  - pip install pytest-cov
-  - pip install pytest-xdist
 # command to run tests
 script: py.test coursera/test -v --cov coursera --cov-report html
 

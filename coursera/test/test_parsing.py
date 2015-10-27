@@ -6,13 +6,13 @@ Test functionality of coursera module.
 """
 import json
 import os.path
+
 import pytest
 
 from six import iteritems
 from mock import patch, Mock, mock_open
 
 from coursera import coursera_dl
-from .test_utils import assertEqual, assertEquals, assertTrue, assertFalse, assertRaises
 
 
 # JSon Handling
@@ -20,6 +20,7 @@ from .test_utils import assertEqual, assertEquals, assertTrue, assertFalse, asse
 @pytest.fixture
 def get_page(monkeypatch):
     monkeypatch.setattr(coursera_dl, 'get_page', Mock())
+
 
 @pytest.fixture
 def json_path():
@@ -29,33 +30,36 @@ def json_path():
 def test_that_should_not_dl_if_file_exist(get_page, json_path):
     coursera_dl.get_page = Mock()
     coursera_dl.download_about(object(), "matrix-002", json_path)
-    assertFalse(coursera_dl.get_page.called)
+    assert coursera_dl.get_page.called is False
+
 
 def test_that_we_parse_and_write_json_correctly(get_page, json_path):
+    unprocessed_json = os.path.join(os.path.dirname(__file__),
+                                    "fixtures", "json", "unprocessed.json")
 
-    raw_data = open(os.path.join(os.path.dirname(__file__), "fixtures", "json", "unprocessed.json")).read()
+    raw_data = open(unprocessed_json).read()
     coursera_dl.get_page = lambda x, y: raw_data
     open_mock = mock_open()
 
     with patch('coursera.coursera_dl.open', open_mock, create=True):
-
         coursera_dl.download_about(object(), "networksonline-002", json_path)
 
-    open_mock.assert_called_once_with(os.path.join(json_path, 'networksonline-002-about.json'), 'w')
+    about_json = os.path.join(json_path, 'networksonline-002-about.json')
+    open_mock.assert_called_once_with(about_json, 'w')
 
     data = json.loads(open_mock().write.call_args[0][0])
 
-    assertEqual(data['id'], 394)
-    assertEqual(data['shortName'], 'networksonline')
+    assert data['id'] == 394
+    assert data['shortName'] == 'networksonline'
 
 
 # Test Syllabus Parsing
 
 @pytest.fixture
-def get_video(monkeypatch):
+def get_old_style_video(monkeypatch):
     """
-    mock some methods that would, otherwise, create
-    repeateadly many web requests.
+    Mock some methods that would, otherwise, create repeateadly many web
+    requests.
 
     More specifically, we mock:
 
@@ -67,8 +71,8 @@ def get_video(monkeypatch):
     monkeypatch.setattr(coursera_dl, 'grab_hidden_video_url',
                         lambda session, href: None)
 
-    # Mock coursera_dl.get_video
-    monkeypatch.setattr(coursera_dl, 'get_video',
+    # Mock coursera_dl.get_old_style_video
+    monkeypatch.setattr(coursera_dl, 'get_old_style_video',
                         lambda session, href: None)
 
 
@@ -86,29 +90,27 @@ def get_video(monkeypatch):
         ("multiple-resources-with-the-same-format.html", 18, 97, 478, 97),
     ]
 )
-def test_parse(get_video, filename, num_sections, num_lectures, num_resources, num_videos):
-    filename = os.path.join(
-        os.path.dirname(__file__), "fixtures", "html",
-        filename)
+def test_parse(get_old_style_video, filename, num_sections, num_lectures,
+               num_resources, num_videos):
+    filename = os.path.join(os.path.dirname(__file__), "fixtures", "html",
+                            filename)
 
     with open(filename) as syllabus:
         syllabus_page = syllabus.read()
 
-        sections = coursera_dl.parse_syllabus(None, syllabus_page, None)
+        sections = coursera_dl.parse_old_style_syllabus(None, syllabus_page, None)
 
         # section count
-        assertEqual(len(sections), num_sections)
+        assert len(sections) == num_sections
 
         # lecture count
         lectures = [lec for sec in sections for lec in sec[1]]
-        assertEqual(len(lectures), num_lectures)
+        assert len(lectures) == num_lectures
 
         # resource count
         resources = [(res[0], len(res[1]))
-                        for lec in lectures for res in iteritems(lec[1])]
-        assertEqual(sum(r for f, r in resources), num_resources)
+                     for lec in lectures for res in iteritems(lec[1])]
+        assert sum(r for f, r in resources) == num_resources
 
         # mp4 count
-        assertEqual(
-            sum(r for f, r in resources if f == "mp4"),
-            num_videos)
+        assert sum(r for f, r in resources if f == "mp4") == num_videos
